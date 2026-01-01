@@ -1,0 +1,16 @@
+{
+  "name": "@fysix/server",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.13.1",
+    "@fysix/common": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  }
+}
