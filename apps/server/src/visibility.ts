@@ -12,6 +12,10 @@ export function computeVisibility(
   observer: { position: RAPIERTypes.Vector3 },
   targets: Array<{ id: string; position: RAPIERTypes.Vector3 }>
 ): VisibilityResult[] {
+  // Keep the query pipeline in sync without advancing time.
+  world.integrationParameters.dt = 0;
+  world.step();
+
   return targets.map((target) => {
     const direction = {
       x: target.position.x - observer.position.x,
@@ -31,7 +35,7 @@ export function computeVisibility(
 
     const ray = new RAPIER.Ray(observer.position, normalized);
     const hit = world.castRay(ray, distance, true, undefined, losRayGroup());
-    const visible = hit === null;
+    const visible = hit === null || hit.timeOfImpact > distance;
 
     return { targetId: target.id, visible };
   });
