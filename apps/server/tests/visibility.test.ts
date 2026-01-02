@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test, vi } from 'vitest';
 import fc from 'fast-check';
 import type * as RAPIERTypes from '@dimforge/rapier3d-compat';
 import { computeVisibility } from '../src/visibility.js';
-import { spawnPlayer, spawnWallBox } from '../src/physics.js';
+import { losRayGroup, spawnPlayer, spawnWallBox } from '../src/physics.js';
 
 let RAPIER: typeof RAPIERTypes;
 
@@ -63,6 +63,28 @@ describe('Firewall LOS visibility', () => {
       expect(world.integrationParameters.dt).toBeCloseTo(originalDt, 10);
     } finally {
       stepSpy.mockRestore();
+    }
+  });
+
+  test('applies LOS ray collision groups in the filter slot', () => {
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    const castRaySpy = vi.spyOn(world, 'castRay');
+    const ctx = { world, rapier: RAPIER };
+
+    const observer = spawnPlayer(ctx, { x: 0, y: 1, z: 0 });
+    const target = spawnPlayer(ctx, { x: 10, y: 1, z: 0 });
+
+    try {
+      computeVisibility(world, { position: observer.translation() }, [
+        { id: 'target', position: target.translation() }
+      ]);
+
+      const [,, , filterFlags, filterGroups, , , filterPredicate] = castRaySpy.mock.calls[0] ?? [];
+      expect(filterFlags).toBeUndefined();
+      expect(filterGroups).toBe(losRayGroup());
+      expect(filterPredicate).toBeUndefined();
+    } finally {
+      castRaySpy.mockRestore();
     }
   });
 
