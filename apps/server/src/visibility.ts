@@ -40,3 +40,6 @@ export function computeVisibility(
     return { targetId: target.id, visible };
   });
 }
+
+// Internal hook for tests that need to stub or spy on visibility evaluation.
+export const _internalComputeVisibility = computeVisibility;
