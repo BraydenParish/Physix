@@ -1,4 +1,5 @@
-import { beforeAll, describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test, vi } from 'vitest';
+import fc from 'fast-check';
 import type * as RAPIERTypes from '@dimforge/rapier3d-compat';
 import { computeVisibility } from '../src/visibility.js';
 import { spawnPlayer, spawnWallBox } from '../src/physics.js';
@@ -23,6 +24,46 @@ describe('Firewall LOS visibility', () => {
     ]);
 
     expect(result.find((r) => r.targetId === 'target')?.visible).toBe(true);
+  });
+
+  test('visibility query does not clobber integration dt', () => {
+    fc.assert(
+      fc.property(fc.float({ min: Math.fround(0.001), max: Math.fround(0.1), noNaN: true }), (dt) => {
+        const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+        world.integrationParameters.dt = dt;
+
+        computeVisibility(
+          world,
+          { position: { x: 0, y: 0, z: 0 } as RAPIERTypes.Vector3 },
+          [{ id: 't', position: { x: 1, y: 0, z: 0 } as RAPIERTypes.Vector3 }]
+        );
+
+        expect(world.integrationParameters.dt).toBeCloseTo(dt, 10);
+      }),
+      { numRuns: 15 }
+    );
+  });
+
+  test('restores integration dt even if stepping fails', () => {
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    const originalDt = world.integrationParameters.dt;
+    const stepSpy = vi.spyOn(world, 'step').mockImplementation(() => {
+      throw new Error('visibility step failure');
+    });
+
+    try {
+      expect(() =>
+        computeVisibility(
+          world,
+          { position: { x: 0, y: 0, z: 0 } as RAPIERTypes.Vector3 },
+          [{ id: 't', position: { x: 1, y: 0, z: 0 } as RAPIERTypes.Vector3 }]
+        )
+      ).toThrow('visibility step failure');
+
+      expect(world.integrationParameters.dt).toBeCloseTo(originalDt, 10);
+    } finally {
+      stepSpy.mockRestore();
+    }
   });
 
   test('a wall blocks LOS', () => {

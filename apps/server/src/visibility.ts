@@ -13,8 +13,15 @@ export function computeVisibility(
   targets: Array<{ id: string; position: RAPIERTypes.Vector3 }>
 ): VisibilityResult[] {
   // Keep the query pipeline in sync without advancing time.
-  world.integrationParameters.dt = 0;
-  world.step();
+  const integrationParameters = world.integrationParameters;
+  const originalDt = integrationParameters.dt;
+  integrationParameters.dt = 0;
+
+  try {
+    world.step();
+  } finally {
+    integrationParameters.dt = originalDt;
+  }
 
   return targets.map((target) => {
     const direction = {
