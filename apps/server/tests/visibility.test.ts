@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest';
+import fc from 'fast-check';
 import type * as RAPIERTypes from '@dimforge/rapier3d-compat';
 import { computeVisibility } from '../src/visibility.js';
 import { spawnPlayer, spawnWallBox } from '../src/physics.js';
@@ -23,6 +24,24 @@ describe('Firewall LOS visibility', () => {
     ]);
 
     expect(result.find((r) => r.targetId === 'target')?.visible).toBe(true);
+  });
+
+  test('visibility query does not clobber integration dt', () => {
+    fc.assert(
+      fc.property(fc.float({ min: Math.fround(0.001), max: Math.fround(0.1), noNaN: true }), (dt) => {
+        const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+        world.integrationParameters.dt = dt;
+
+        computeVisibility(
+          world,
+          { position: { x: 0, y: 0, z: 0 } as RAPIERTypes.Vector3 },
+          [{ id: 't', position: { x: 1, y: 0, z: 0 } as RAPIERTypes.Vector3 }]
+        );
+
+        expect(world.integrationParameters.dt).toBeCloseTo(dt, 10);
+      }),
+      { numRuns: 15 }
+    );
   });
 
   test('a wall blocks LOS', () => {
