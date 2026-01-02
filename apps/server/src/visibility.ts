@@ -13,14 +13,18 @@ export function computeVisibility(
   targets: Array<{ id: string; position: RAPIERTypes.Vector3 }>
 ): VisibilityResult[] {
   // Keep the query pipeline in sync without advancing time.
-  const integrationParameters = world.integrationParameters;
-  const originalDt = integrationParameters.dt;
-  integrationParameters.dt = 0;
+  const integrationParameters = (world as RAPIERTypes.World & { integrationParameters?: { dt?: number } }).integrationParameters;
+  const originalDt = typeof integrationParameters?.dt === 'number' ? integrationParameters.dt : undefined;
+  if (integrationParameters && typeof integrationParameters.dt === 'number') {
+    integrationParameters.dt = 0;
+  }
 
   try {
     world.step();
   } finally {
-    integrationParameters.dt = originalDt;
+    if (integrationParameters && typeof originalDt === 'number') {
+      integrationParameters.dt = originalDt;
+    }
   }
 
   return targets.map((target) => {
