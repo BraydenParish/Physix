@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import fc from 'fast-check';
 import type * as RAPIERTypes from '@dimforge/rapier3d-compat';
 import { computeVisibility } from '../src/visibility.js';
-import { spawnPlayer, spawnWallBox } from '../src/physics.js';
+import { losRayGroup, spawnPlayer, spawnWallBox } from '../src/physics.js';
 
 let RAPIER: typeof RAPIERTypes;
 
